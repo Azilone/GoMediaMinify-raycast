@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "camera-workflow",
-  "title": "Caméra Workflow",
-  "description": "Toolkit Raycast de workflows photo/vidéo (conversion, tri, archivage)",
+  "title": "Camera Workflow",
+  "description": "Raycast toolkit for photo/video workflows (ingest, convert, organize, archive)",
   "icon": "command-icon.png",
   "author": "Azilone",
   "categories": ["Productivity", "Developer Tools"],
@@ -11,7 +11,7 @@
     {
       "name": "convert-media",
       "title": "Convert Media (GoMediaMinify)",
-      "description": "Lancer un workflow de conversion avec options",
+      "description": "Run a conversion workflow with configurable options",
       "mode": "view"
     }
   ],
