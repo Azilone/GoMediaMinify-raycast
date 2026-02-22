@@ -3,7 +3,6 @@
   "name": "camera-workflow",
   "title": "Camera Workflow",
   "description": "Prepare your camera library for cloud backup: shrink files, organize by date, keep originals safe",
-
   "icon": "command-icon.png",
   "author": "Azilone",
   "categories": [
@@ -21,7 +20,8 @@
   ],
   "dependencies": {
     "@raycast/api": "^1.83.0",
-    "@raycast/utils": "^1.17.0"
+    "@raycast/utils": "^1.17.0",
+    "dev": "^0.1.3"
   },
   "devDependencies": {
     "@types/node": "^22.19.11",
