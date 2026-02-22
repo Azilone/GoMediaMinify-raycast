@@ -30,6 +30,7 @@ export type LastRunRecord = {
 
 type Props = {
   values: ConversionFormValues;
+  mediaConverterPath?: string;
   onCompleted?: (record: LastRunRecord) => Promise<void>;
 };
 
@@ -77,7 +78,7 @@ function markdownForState(lines: string[], status: "running" | "success" | "fail
   return `# Backup Preparation Run\n\n**Status:** ${statusLabel}\n\n## Live Process Output\n\n\`\`\`\n${lines.slice(-240).join("\n")}\n\`\`\`\n\n## Backup Report\n${summary.length ? summary.map((line) => `- ${line}`).join("\n") : "- Waiting for report metrics..."}`;
 }
 
-export default function ConversionRunView({ values, onCompleted }: Props) {
+export default function ConversionRunView({ values, mediaConverterPath, onCompleted }: Props) {
   const [lines, setLines] = useState<string[]>([]);
   const [status, setStatus] = useState<"running" | "success" | "failure">("running");
   const [summary, setSummary] = useState<string[]>([]);
@@ -90,7 +91,7 @@ export default function ConversionRunView({ values, onCompleted }: Props) {
     const capturedLines: string[] = [];
     let capturedLogPath: string | undefined;
 
-    const child = spawn("media-converter", args, {
+    const child = spawn(mediaConverterPath || "media-converter", args, {
       stdio: ["ignore", "pipe", "pipe"],
     });
 

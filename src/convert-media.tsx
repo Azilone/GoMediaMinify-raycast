@@ -75,7 +75,12 @@ async function resolveBinaryPath(bin: string): Promise<string | null> {
   }
 
   // 3) Common macOS install paths fallback
-  for (const p of ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) {
+  for (const p of [
+    path.join(process.env.HOME || "", ".local/bin"),
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+    "/usr/bin",
+  ]) {
     const candidate = path.join(p, bin);
     try {
       await access(candidate, constants.X_OK);
@@ -215,6 +220,7 @@ export default function Command() {
       push(
         <ConversionRunView
           values={values}
+          mediaConverterPath={deps.data?.found["media-converter"]}
           onCompleted={async (record: LastRunRecord) => {
             await LocalStorage.setItem(LAST_RUN_STORAGE_KEY, JSON.stringify(record));
           }}
