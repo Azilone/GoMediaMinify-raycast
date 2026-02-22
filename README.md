@@ -1,6 +1,6 @@
-# GoMediaMinify Raycast Extension
+# Caméra Workflow (Raycast Extension)
 
-Raycast extension to run [`GoMediaMinify`](https://github.com/Azilone/GoMediaMinify) from a friendly UI.
+Caméra Workflow est une extension Raycast pour piloter [`GoMediaMinify`](https://github.com/Azilone/GoMediaMinify) et, à terme, centraliser plusieurs workflows photo/vidéo.
 
 ## Planned features
 

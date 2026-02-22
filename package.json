@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "gomediaminify",
-  "title": "GoMediaMinify",
-  "description": "Run GoMediaMinify conversions from Raycast",
+  "name": "camera-workflow",
+  "title": "Caméra Workflow",
+  "description": "Toolkit Raycast de workflows photo/vidéo (conversion, tri, archivage)",
   "icon": "command-icon.png",
   "author": "Azilone",
   "categories": ["Productivity", "Developer Tools"],
@@ -10,8 +10,8 @@
   "commands": [
     {
       "name": "convert-media",
-      "title": "Convert Media",
-      "description": "Launch GoMediaMinify with selected options",
+      "title": "Convert Media (GoMediaMinify)",
+      "description": "Lancer un workflow de conversion avec options",
       "mode": "view"
     }
   ],
