@@ -51,6 +51,7 @@ Use these terms consistently across UI and docs:
 ## Commands (User-Facing)
 
 - **Prepare Library for Backup**
+- **Find Source Volume**
 - **Check System Setup**
 - **View Last Backup Report**
 - **Open Prepared Library**
@@ -63,7 +64,7 @@ Use these terms consistently across UI and docs:
 - [x] Add safer input validation (existing paths, write permissions).
 - [x] Add post-run summary (files processed, saved space, duration).
 - [x] Add command to open latest output folder.
-- [ ] Add optional SD-card auto-detection helper command.
+- [x] Add optional SD-card auto-detection helper command.
 - [ ] Add destination profile templates (Local-only in V1, cloud in V2).
 
 ## Roadmap
@@ -112,6 +113,7 @@ Use these terms consistently across UI and docs:
    ```
 3. In Raycast, run commands in this order:
    - **Check System Setup**
+   - **Find Source Volume**
    - **Prepare Library for Backup** (start with dry-run)
    - **View Last Backup Report**
    - **Open Prepared Library**

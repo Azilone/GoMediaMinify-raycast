@@ -35,6 +35,12 @@
       "title": "Open Prepared Library",
       "description": "Open the latest prepared library folder and run log",
       "mode": "view"
+    },
+    {
+      "name": "find-source-volume",
+      "title": "Find Source Volume",
+      "description": "Find mounted SD cards and camera source volumes",
+      "mode": "view"
     }
   ],
   "dependencies": {
