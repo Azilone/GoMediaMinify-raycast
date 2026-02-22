@@ -102,6 +102,21 @@ async function buildCandidateDirs(): Promise<string[]> {
   return Array.from(dirs);
 }
 
+function mergePathEntries(entries: string[]): string {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const entry of entries) {
+    if (!entry) continue;
+    for (const part of entry.split(":")) {
+      const trimmed = part.trim();
+      if (!trimmed || seen.has(trimmed)) continue;
+      seen.add(trimmed);
+      out.push(trimmed);
+    }
+  }
+  return out.join(":");
+}
+
 async function resolveBinaryPath(bin: string): Promise<string | null> {
   // Fast path
   try {
@@ -257,10 +272,20 @@ export default function Command() {
         message: values.dryRun ? "Dry-run preview" : "Preparing media library",
       });
 
+      const searchDirs = await buildCandidateDirs();
+      const runtimePath = mergePathEntries([
+        process.env.PATH || "",
+        searchDirs.join(":"),
+        Object.values(deps.data?.found || {})
+          .map((binaryPath) => path.dirname(binaryPath))
+          .join(":"),
+      ]);
+
       push(
         <ConversionRunView
           values={values}
           mediaConverterPath={deps.data?.found["media-converter"]}
+          runtimePath={runtimePath}
           onCompleted={async (record: LastRunRecord) => {
             await LocalStorage.setItem(LAST_RUN_STORAGE_KEY, JSON.stringify(record));
           }}
