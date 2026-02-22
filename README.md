@@ -54,11 +54,12 @@ Use these terms consistently across UI and docs:
 
 This single command now includes a guided flow:
 1. setup check,
-2. source + destination folder pickers,
-3. preset selection,
-4. advanced settings only when preset = `custom`,
-5. execution,
-6. backup report + quick access to prepared library/log.
+2. source folder picker + live source stats (size, images, videos),
+3. auto destination on Desktop (or manual destination picker),
+4. preset selection,
+5. advanced settings only when preset = `custom`,
+6. execution,
+7. backup report + quick access to prepared library/log.
 
 ## TODO
 

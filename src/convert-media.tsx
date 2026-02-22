@@ -26,6 +26,8 @@ type SubmitValues = Partial<Omit<ConversionFormValues, "source" | "destination">
   sourceFolder?: string[];
   destinationFolder?: string[];
   sourceSuggested?: string;
+  autoDestination?: boolean;
+  destinationName?: string;
 };
 
 const COMMON_SYSTEM_VOLUME_NAMES = new Set([
@@ -38,6 +40,84 @@ const COMMON_SYSTEM_VOLUME_NAMES = new Set([
   "home",
   "net",
 ]);
+
+const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".heic", ".heif", ".webp", ".avif", ".tiff", ".bmp", ".gif", ".raw", ".cr2", ".arw", ".nef", ".dng"]);
+const VIDEO_EXTENSIONS = new Set([".mp4", ".mov", ".mkv", ".avi", ".m4v", ".mts", ".m2ts", ".wmv", ".flv", ".3gp", ".mpeg", ".mpg"]);
+
+type SourceStats = {
+  totalBytes: number;
+  images: number;
+  videos: number;
+};
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let size = bytes / 1024;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+async function collectSourceStats(root: string): Promise<SourceStats> {
+  const stack = [root];
+  const stats: SourceStats = { totalBytes: 0, images: 0, videos: 0 };
+
+  while (stack.length) {
+    const current = stack.pop() as string;
+
+    let entries;
+    try {
+      entries = await readdir(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+        continue;
+      }
+
+      if (!entry.isFile()) continue;
+
+      try {
+        const st = await stat(fullPath);
+        stats.totalBytes += st.size;
+      } catch {
+        // ignore unreadable file
+      }
+
+      const ext = path.extname(entry.name).toLowerCase();
+      if (IMAGE_EXTENSIONS.has(ext)) stats.images += 1;
+      if (VIDEO_EXTENSIONS.has(ext)) stats.videos += 1;
+    }
+  }
+
+  return stats;
+}
+
+function buildDesktopDestination(folderName?: string): string {
+  const home = process.env.HOME;
+  if (!home) throw new Error("Cannot resolve HOME directory");
+
+  const safeName = (folderName || "prepared-library").trim() || "prepared-library";
+  return path.join(home, "Desktop", safeName);
+}
+
+function defaultDestinationName(): string {
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const hh = String(now.getHours()).padStart(2, "0");
+  const min = String(now.getMinutes()).padStart(2, "0");
+  return `prepared-library-${yyyy}${mm}${dd}-${hh}${min}`;
+}
 
 function defaultValues(): ConversionFormValues {
   return {
@@ -252,6 +332,16 @@ export default function Command() {
   const deps = usePromise(checkDependencies, []);
   const volumes = usePromise(detectSourceVolumes, []);
   const [presetView, setPresetView] = useState<ConversionPreset>(defaultValues().preset as ConversionPreset);
+  const [sourceFolder, setSourceFolder] = useState<string[]>([]);
+  const [sourceSuggested, setSourceSuggested] = useState<string>("");
+  const [autoDestination, setAutoDestination] = useState<boolean>(true);
+  const [destinationName, setDestinationName] = useState<string>(defaultDestinationName());
+
+  const selectedSourcePath = sourceFolder?.[0] || sourceSuggested;
+  const sourceStats = usePromise(async (sourcePath: string) => {
+    if (!sourcePath) return null;
+    return collectSourceStats(sourcePath);
+  }, [selectedSourcePath]);
 
   async function handleSubmit(input: SubmitValues) {
     try {
@@ -260,7 +350,9 @@ export default function Command() {
       }
 
       const source = input.sourceFolder?.[0] || input.sourceSuggested?.trim() || "";
-      const destination = input.destinationFolder?.[0] || "";
+      const destination = input.autoDestination
+        ? buildDesktopDestination(input.destinationName)
+        : input.destinationFolder?.[0] || "";
 
       const values = applyPreset(normalizeValues(input, source, destination));
 
@@ -306,6 +398,13 @@ export default function Command() {
       : `⚠️ Missing dependencies: ${deps.data.missing.join(", ")}`
     : "Checking dependencies...";
 
+  let destinationPreview = "Destination path unavailable";
+  try {
+    destinationPreview = `Destination path: ${buildDesktopDestination(destinationName)}`;
+  } catch {
+    destinationPreview = "Destination path unavailable (HOME not resolved)";
+  }
+
   return (
     <Form
       actions={
@@ -324,10 +423,17 @@ export default function Command() {
         canChooseFiles={false}
         allowMultipleSelection={false}
         info="Pick your SD card or media source folder."
+        value={sourceFolder}
+        onChange={setSourceFolder}
       />
 
       {volumes.data?.length ? (
-        <Form.Dropdown id="sourceSuggested" title="Suggested Source (optional fallback)">
+        <Form.Dropdown
+          id="sourceSuggested"
+          title="Suggested Source (optional fallback)"
+          value={sourceSuggested}
+          onChange={setSourceSuggested}
+        >
           <Form.Dropdown.Item value="" title="(none)" />
           {volumes.data.map((volume) => (
             <Form.Dropdown.Item key={volume.mountPath} value={volume.mountPath} title={`${volume.name} (${volume.mountPath})`} />
@@ -335,14 +441,48 @@ export default function Command() {
         </Form.Dropdown>
       ) : null}
 
-      <Form.FilePicker
-        id="destinationFolder"
-        title="Prepared Library Folder"
-        canChooseDirectories
-        canChooseFiles={false}
-        allowMultipleSelection={false}
-        info="Pick where the prepared library will be written."
+      {selectedSourcePath ? (
+        <Form.Description
+          text={
+            sourceStats.isLoading
+              ? "Source analysis: scanning..."
+              : sourceStats.data
+                ? `Source: ${formatBytes(sourceStats.data.totalBytes)} • ${sourceStats.data.images} images • ${sourceStats.data.videos} videos`
+                : "Source analysis unavailable"
+          }
+        />
+      ) : null}
+
+      <Form.Checkbox
+        id="autoDestination"
+        title="Auto-create destination"
+        label="Create folder on Desktop automatically"
+        value={autoDestination}
+        onChange={setAutoDestination}
+        defaultValue={true}
       />
+
+      {autoDestination ? (
+        <>
+          <Form.TextField
+            id="destinationName"
+            title="Destination Folder Name"
+            value={destinationName}
+            onChange={setDestinationName}
+            placeholder="prepared-library-YYYYMMDD-HHMM"
+          />
+          <Form.Description text={destinationPreview} />
+        </>
+      ) : (
+        <Form.FilePicker
+          id="destinationFolder"
+          title="Prepared Library Folder"
+          canChooseDirectories
+          canChooseFiles={false}
+          allowMultipleSelection={false}
+          info="Pick where the prepared library will be written."
+        />
+      )}
 
       <Form.Dropdown id="preset" title="Preset" defaultValue={defaultValues().preset} onChange={(value) => setPresetView(value as ConversionPreset)}>
         <Form.Dropdown.Item value="google-photos" title="Google Photos (Recommended)" />
