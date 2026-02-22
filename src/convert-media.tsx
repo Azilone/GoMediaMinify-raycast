@@ -22,7 +22,7 @@ const LAST_RUN_STORAGE_KEY = "camera-workflow:last-run";
 
 type DependencyState = { ok: boolean; missing: string[]; found: Record<string, string> };
 type DetectedVolume = { name: string; mountPath: string };
-type SubmitValues = Omit<ConversionFormValues, "source" | "destination"> & {
+type SubmitValues = Partial<Omit<ConversionFormValues, "source" | "destination">> & {
   sourceFolder?: string[];
   destinationFolder?: string[];
   sourceSuggested?: string;
@@ -201,18 +201,35 @@ function applyPreset(values: ConversionFormValues): ConversionFormValues {
   const preset = values.preset as ConversionPreset;
 
   if (preset === "google-photos") {
-    return { ...values, photoFormat: "avif", videoCodec: "h265", photoQualityAvif: "78", videoCrf: "28" };
+    return { ...values, photoFormat: "avif", videoCodec: "h265", photoQualityAvif: "78", photoQualityWebp: "85", videoCrf: "28" };
   }
 
   if (preset === "high-quality") {
-    return { ...values, photoFormat: "avif", videoCodec: "h265", photoQualityAvif: "90", videoCrf: "23" };
+    return { ...values, photoFormat: "avif", videoCodec: "h265", photoQualityAvif: "90", photoQualityWebp: "92", videoCrf: "23" };
   }
 
   if (preset === "max-compression") {
-    return { ...values, photoFormat: "avif", videoCodec: "av1", photoQualityAvif: "70", videoCrf: "33" };
+    return { ...values, photoFormat: "avif", videoCodec: "av1", photoQualityAvif: "70", photoQualityWebp: "75", videoCrf: "33" };
   }
 
   return values;
+}
+
+function normalizeValues(input: SubmitValues, source: string, destination: string): ConversionFormValues {
+  const defaults = defaultValues();
+
+  return {
+    source,
+    destination,
+    preset: (input.preset as ConversionPreset) || defaults.preset,
+    dryRun: input.dryRun ?? defaults.dryRun,
+    jobs: input.jobs || defaults.jobs,
+    photoFormat: (input.photoFormat as "avif" | "webp") || defaults.photoFormat,
+    photoQualityAvif: input.photoQualityAvif || defaults.photoQualityAvif,
+    photoQualityWebp: input.photoQualityWebp || defaults.photoQualityWebp,
+    videoCodec: (input.videoCodec as "h265" | "h264" | "av1") || defaults.videoCodec,
+    videoCrf: input.videoCrf || defaults.videoCrf,
+  };
 }
 
 export default function Command() {
@@ -224,24 +241,13 @@ export default function Command() {
   async function handleSubmit(input: SubmitValues) {
     try {
       if (deps.data && !deps.data.ok) {
-        throw new Error(`Missing required tools: ${deps.data.missing.join(", ")}. Found: ${Object.keys(deps.data.found).join(", ") || "none"}.`);
+        throw new Error(`Missing dependencies: ${deps.data.missing.join(", ")}`);
       }
 
       const source = input.sourceFolder?.[0] || input.sourceSuggested?.trim() || "";
       const destination = input.destinationFolder?.[0] || "";
 
-      const values = applyPreset({
-        source,
-        destination,
-        preset: input.preset,
-        dryRun: input.dryRun,
-        jobs: input.jobs,
-        photoFormat: input.photoFormat,
-        photoQualityAvif: input.photoQualityAvif,
-        photoQualityWebp: input.photoQualityWebp,
-        videoCodec: input.videoCodec,
-        videoCrf: input.videoCrf,
-      });
+      const values = applyPreset(normalizeValues(input, source, destination));
 
       await validateInputs(values);
 
@@ -271,9 +277,9 @@ export default function Command() {
 
   const setupText = deps.data
     ? deps.data.ok
-      ? `✅ System setup OK (${Object.keys(deps.data.found).join(", ")})`
-      : `⚠️ Found: ${Object.keys(deps.data.found).join(", ") || "none"} | Missing: ${deps.data.missing.join(", ")}`
-    : "Checking system setup...";
+      ? "✅ All dependencies detected"
+      : `⚠️ Missing dependencies: ${deps.data.missing.join(", ")}`
+    : "Checking dependencies...";
 
   return (
     <Form
@@ -284,7 +290,7 @@ export default function Command() {
       }
       isLoading={deps.isLoading || volumes.isLoading}
     >
-      <Form.Description text={`Guided single-command workflow. ${setupText}`} />
+      <Form.Description text={setupText} />
 
       <Form.FilePicker
         id="sourceFolder"
