@@ -14,10 +14,19 @@ Turn repetitive camera management tasks into fast, reliable, one-command workflo
 - Every major change should be documented in this README roadmap.
 - Prefer small, iterative releases over large rewrites.
 
+## Core Principles
+
+- Idempotent by design: rerunning the same workflow should not duplicate or reprocess completed work.
+- Safe defaults first: preview before write operations whenever possible.
+- Traceability: each run should produce clear logs and summaries.
+- Practical 80/20 delivery: prioritize high-impact workflows before advanced automation.
+
 ## Current Scope (V1)
 
+- 80/20 focus: ship a practical MVP first, then iterate.
 - Run GoMediaMinify conversion from a Raycast form.
-- Select source/destination folders.
+- Source detection + manual source picker.
+- Local destination folder only (cloud targets later).
 - Configure core options (photo format, video codec, jobs, dry-run).
 
 ## TODO
