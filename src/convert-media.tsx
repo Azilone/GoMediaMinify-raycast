@@ -459,7 +459,6 @@ export default function Command() {
         label="Create folder on Desktop automatically"
         value={autoDestination}
         onChange={setAutoDestination}
-        defaultValue={true}
       />
 
       {autoDestination ? (
