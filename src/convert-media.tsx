@@ -54,8 +54,56 @@ function defaultValues(): ConversionFormValues {
   };
 }
 
-async function resolveBinaryPath(bin: string): Promise<string | null> {
+async function buildCandidateDirs(): Promise<string[]> {
+  const dirs = new Set<string>();
+
+  const addPathString = (pathString?: string) => {
+    if (!pathString) return;
+    for (const part of pathString.split(":")) {
+      const trimmed = part.trim();
+      if (trimmed) dirs.add(trimmed);
+    }
+  };
+
   // 1) Current process PATH
+  addPathString(process.env.PATH);
+
+  // 2) Login shell PATH (often different in Raycast)
+  const shell = process.env.SHELL || "/bin/zsh";
+  try {
+    const shellPath = (await execFileAsync(shell, ["-lc", "echo $PATH"]))?.stdout?.trim();
+    addPathString(shellPath);
+  } catch {
+    // ignore
+  }
+
+  // 3) macOS path_helper (system default PATH)
+  try {
+    const out = (await execFileAsync("/usr/libexec/path_helper", ["-s"]))?.stdout || "";
+    const match = out.match(/PATH="([^"]+)"/);
+    if (match?.[1]) addPathString(match[1]);
+  } catch {
+    // ignore
+  }
+
+  // 4) Known common locations
+  const home = process.env.HOME || "";
+  [
+    path.join(home, ".local/bin"),
+    path.join(home, "bin"),
+    "/opt/homebrew/bin",
+    "/usr/local/bin",
+    "/usr/bin",
+    "/bin",
+    "/usr/sbin",
+    "/sbin",
+  ].forEach((d) => dirs.add(d));
+
+  return Array.from(dirs);
+}
+
+async function resolveBinaryPath(bin: string): Promise<string | null> {
+  // Fast path
   try {
     const res = await execFileAsync("which", [bin]);
     const candidate = res.stdout.trim();
@@ -64,24 +112,10 @@ async function resolveBinaryPath(bin: string): Promise<string | null> {
     // continue
   }
 
-  // 2) Login shell PATH (Raycast can differ from interactive shell)
-  const shell = process.env.SHELL || "/bin/zsh";
-  try {
-    const res = await execFileAsync(shell, ["-lc", `command -v ${bin}`]);
-    const candidate = res.stdout.trim();
-    if (candidate) return candidate;
-  } catch {
-    // continue
-  }
-
-  // 3) Common macOS install paths fallback
-  for (const p of [
-    path.join(process.env.HOME || "", ".local/bin"),
-    "/opt/homebrew/bin",
-    "/usr/local/bin",
-    "/usr/bin",
-  ]) {
-    const candidate = path.join(p, bin);
+  // Exhaustive fallback based on merged PATH sources
+  const candidateDirs = await buildCandidateDirs();
+  for (const dir of candidateDirs) {
+    const candidate = path.join(dir, bin);
     try {
       await access(candidate, constants.X_OK);
       return candidate;
