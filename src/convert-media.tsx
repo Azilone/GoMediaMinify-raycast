@@ -2,17 +2,41 @@ import {
   Action,
   ActionPanel,
   Form,
+  Icon,
   LocalStorage,
   Toast,
   showToast,
   useNavigation,
 } from "@raycast/api";
+import { usePromise } from "@raycast/utils";
 import { existsSync } from "node:fs";
-import { access, mkdir, stat } from "node:fs/promises";
+import { access, mkdir, readdir, stat } from "node:fs/promises";
 import { constants } from "node:fs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import path from "node:path";
 import ConversionRunView, { ConversionFormValues, ConversionPreset, LastRunRecord } from "./conversion-run";
 
+const execFileAsync = promisify(execFile);
 const LAST_RUN_STORAGE_KEY = "camera-workflow:last-run";
+
+type DependencyState = { ok: boolean; missing: string[] };
+type DetectedVolume = { name: string; mountPath: string };
+type SubmitValues = Omit<ConversionFormValues, "source"> & {
+  sourceDetected: string;
+  sourceManual: string;
+};
+
+const COMMON_SYSTEM_VOLUME_NAMES = new Set([
+  "Macintosh HD",
+  "Macintosh HD - Data",
+  "Preboot",
+  "Update",
+  "VM",
+  "Recovery",
+  "home",
+  "net",
+]);
 
 function defaultValues(): ConversionFormValues {
   return {
@@ -27,6 +51,51 @@ function defaultValues(): ConversionFormValues {
     videoCodec: "h265",
     videoCrf: "28",
   };
+}
+
+async function checkDependencies(): Promise<DependencyState> {
+  const bins = ["media-converter", "ffmpeg", "ffprobe", "magick"];
+  const missing: string[] = [];
+
+  for (const bin of bins) {
+    try {
+      await execFileAsync("which", [bin]);
+    } catch {
+      missing.push(bin);
+    }
+  }
+
+  return { ok: missing.length === 0, missing };
+}
+
+async function detectSourceVolumes(): Promise<DetectedVolume[]> {
+  const roots = ["/Volumes", "/media", "/mnt"];
+  const found: DetectedVolume[] = [];
+
+  for (const root of roots) {
+    try {
+      const entries = await readdir(root);
+      for (const entry of entries) {
+        if (COMMON_SYSTEM_VOLUME_NAMES.has(entry)) continue;
+        const mountPath = path.join(root, entry);
+        try {
+          const st = await stat(mountPath);
+          if (!st.isDirectory()) continue;
+          if (/(sd|card|camera|dcim|usb|eos|sony|nikon|canon|untitled)/i.test(entry.toLowerCase())) {
+            found.push({ name: entry, mountPath });
+          }
+        } catch {
+          // ignore
+        }
+      }
+    } catch {
+      // root not available
+    }
+  }
+
+  const dedup = new Map<string, DetectedVolume>();
+  for (const item of found) dedup.set(item.mountPath, item);
+  return Array.from(dedup.values());
 }
 
 async function validateInputs(values: ConversionFormValues) {
@@ -71,10 +140,28 @@ function applyPreset(values: ConversionFormValues): ConversionFormValues {
 
 export default function Command() {
   const { push } = useNavigation();
+  const deps = usePromise(checkDependencies, []);
+  const volumes = usePromise(detectSourceVolumes, []);
 
-  async function handleSubmit(input: ConversionFormValues) {
+  async function handleSubmit(input: SubmitValues) {
     try {
-      const values = applyPreset(input);
+      if (deps.data && !deps.data.ok) {
+        throw new Error(`Missing required tools: ${deps.data.missing.join(", ")}. Run setup first.`);
+      }
+
+      const source = input.sourceManual?.trim() || input.sourceDetected?.trim();
+      const values = applyPreset({
+        source,
+        destination: input.destination,
+        preset: input.preset,
+        dryRun: input.dryRun,
+        jobs: input.jobs,
+        photoFormat: input.photoFormat,
+        photoQualityAvif: input.photoQualityAvif,
+        photoQualityWebp: input.photoQualityWebp,
+        videoCodec: input.videoCodec,
+        videoCrf: input.videoCrf,
+      });
       await validateInputs(values);
 
       await showToast({
@@ -100,16 +187,31 @@ export default function Command() {
     }
   }
 
+  const setupText = deps.data
+    ? deps.data.ok
+      ? "System setup: ready"
+      : `System setup: missing ${deps.data.missing.join(", ")}`
+    : "Checking system setup...";
+
   return (
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Prepare Library for Backup" onSubmit={handleSubmit} />
+          <Action.SubmitForm title="Prepare Library for Backup" icon={Icon.ArrowRight} onSubmit={handleSubmit} />
         </ActionPanel>
       }
+      isLoading={deps.isLoading || volumes.isLoading}
     >
-      <Form.Description text="Prepare a cloud-ready library: pick source + destination, choose a preset, run safely." />
-      <Form.TextField id="source" title="Source Folder" placeholder="/path/to/source" />
+      <Form.Description text={`Guided single-command workflow. ${setupText}`} />
+
+      <Form.Dropdown id="sourceDetected" title="Detected Source Volume" info="Pick a detected source volume, or leave empty and use manual path.">
+        <Form.Dropdown.Item value="" title="(none) use manual source path" />
+        {volumes.data?.map((volume) => (
+          <Form.Dropdown.Item key={volume.mountPath} value={volume.mountPath} title={`${volume.name} (${volume.mountPath})`} />
+        ))}
+      </Form.Dropdown>
+
+      <Form.TextField id="sourceManual" title="Source Folder (Manual)" placeholder="/path/to/source" />
       <Form.TextField id="destination" title="Prepared Library Folder" placeholder="/path/to/prepared-library" />
 
       <Form.Dropdown id="preset" title="Preset" defaultValue={defaultValues().preset}>
@@ -126,24 +228,14 @@ export default function Command() {
         <Form.Dropdown.Item value="avif" title="AVIF" />
         <Form.Dropdown.Item value="webp" title="WebP" />
       </Form.Dropdown>
-      <Form.TextField
-        id="photoQualityAvif"
-        title="AVIF Quality"
-        placeholder={defaultValues().photoQualityAvif}
-        defaultValue={defaultValues().photoQualityAvif}
-      />
-      <Form.TextField
-        id="photoQualityWebp"
-        title="WebP Quality"
-        placeholder={defaultValues().photoQualityWebp}
-        defaultValue={defaultValues().photoQualityWebp}
-      />
+      <Form.TextField id="photoQualityAvif" title="AVIF Quality" defaultValue={defaultValues().photoQualityAvif} />
+      <Form.TextField id="photoQualityWebp" title="WebP Quality" defaultValue={defaultValues().photoQualityWebp} />
       <Form.Dropdown id="videoCodec" title="Video Codec" defaultValue={defaultValues().videoCodec}>
         <Form.Dropdown.Item value="h265" title="H.265" />
         <Form.Dropdown.Item value="h264" title="H.264" />
         <Form.Dropdown.Item value="av1" title="AV1" />
       </Form.Dropdown>
-      <Form.TextField id="videoCrf" title="Video CRF" placeholder={defaultValues().videoCrf} defaultValue={defaultValues().videoCrf} />
+      <Form.TextField id="videoCrf" title="Video CRF" defaultValue={defaultValues().videoCrf} />
     </Form>
   );
 }

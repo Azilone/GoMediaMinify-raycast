@@ -15,31 +15,7 @@
     {
       "name": "convert-media",
       "title": "Prepare Library for Backup",
-      "description": "Shrink and organize media for cloud backup with safe defaults",
-      "mode": "view"
-    },
-    {
-      "name": "check-deps",
-      "title": "Check System Setup",
-      "description": "Verify required tools are installed before running backup preparation",
-      "mode": "view"
-    },
-    {
-      "name": "last-run-summary",
-      "title": "View Last Backup Report",
-      "description": "See metrics from the latest backup preparation run",
-      "mode": "view"
-    },
-    {
-      "name": "open-latest-output",
-      "title": "Open Prepared Library",
-      "description": "Open the latest prepared library folder and run log",
-      "mode": "view"
-    },
-    {
-      "name": "find-source-volume",
-      "title": "Find Source Volume",
-      "description": "Find mounted SD cards and camera source volumes",
+      "description": "Single-command guided flow: source, settings, run, and report",
       "mode": "view"
     }
   ],

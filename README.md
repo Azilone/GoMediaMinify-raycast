@@ -48,23 +48,25 @@ Use these terms consistently across UI and docs:
 - Configure core options (preset, codec/format, quality, jobs, dry-run).
 - Show live process output and a backup report.
 
-## Commands (User-Facing)
+## Command (User-Facing)
 
 - **Prepare Library for Backup**
-- **Find Source Volume**
-- **Check System Setup**
-- **View Last Backup Report**
-- **Open Prepared Library**
+
+This single command now includes a guided flow:
+1. setup check,
+2. source selection (detected volume + manual override),
+3. backup settings,
+4. execution,
+5. backup report + quick access to prepared library/log.
 
 ## TODO
 
-- [x] Add dependency diagnostics command (`media-converter`, `ffmpeg`, `ffprobe`, `magick`).
+- [x] Add setup checks (`media-converter`, `ffmpeg`, `ffprobe`, `magick`) in the guided flow.
 - [x] Add conversion presets (Google Photos, High Quality, Max Compression).
-- [x] Add progress/log output view in Raycast.
+- [x] Add progress/log output and backup report.
 - [x] Add safer input validation (existing paths, write permissions).
-- [x] Add post-run summary (files processed, saved space, duration).
-- [x] Add command to open latest output folder.
-- [x] Add optional SD-card auto-detection helper command.
+- [x] Add quick access to prepared library and log after run.
+- [x] Add source auto-detection helper inside the single command flow.
 - [ ] Add destination profile templates (Local-only in V1, cloud in V2).
 
 ## Roadmap
@@ -111,12 +113,9 @@ Use these terms consistently across UI and docs:
    npm install --include=dev
    npm run dev
    ```
-3. In Raycast, run commands in this order:
-   - **Check System Setup**
-   - **Find Source Volume**
+3. In Raycast, run:
    - **Prepare Library for Backup** (start with dry-run)
-   - **View Last Backup Report**
-   - **Open Prepared Library**
+   - follow the guided flow end-to-end
 
 ### Done Criteria (before commit)
 - Command works end-to-end on Mac.
