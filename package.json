@@ -5,13 +5,34 @@
   "description": "Raycast toolkit for photo/video workflows (ingest, convert, organize, archive)",
   "icon": "command-icon.png",
   "author": "Azilone",
-  "categories": ["Productivity", "Developer Tools"],
+  "categories": [
+    "Productivity",
+    "Developer Tools"
+  ],
   "license": "MIT",
   "commands": [
     {
       "name": "convert-media",
       "title": "Convert Media (GoMediaMinify)",
       "description": "Run a conversion workflow with configurable options",
+      "mode": "view"
+    },
+    {
+      "name": "check-deps",
+      "title": "Check Dependencies",
+      "description": "Verify media-converter, ffmpeg, ffprobe, and magick availability",
+      "mode": "view"
+    },
+    {
+      "name": "last-run-summary",
+      "title": "Last Run Summary",
+      "description": "Show latest conversion summary metrics",
+      "mode": "view"
+    },
+    {
+      "name": "open-latest-output",
+      "title": "Open Latest Output",
+      "description": "Open the destination folder and log from the latest run",
       "mode": "view"
     }
   ],
@@ -20,8 +41,8 @@
     "@raycast/utils": "^1.17.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "typescript": "^5.7.2"
+    "@types/node": "^22.19.11",
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "dev": "ray develop",

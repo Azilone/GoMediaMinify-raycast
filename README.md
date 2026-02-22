@@ -31,12 +31,14 @@ Turn repetitive camera management tasks into fast, reliable, one-command workflo
 
 ## TODO
 
-- [ ] Add dependency diagnostics command (`media-converter`, `ffmpeg`, `ffprobe`, `magick`).
-- [ ] Add conversion presets (Google Photos, High Quality, Max Compression).
-- [ ] Add progress/log output view in Raycast.
-- [ ] Add safer input validation (existing paths, write permissions).
-- [ ] Add post-run summary (files processed, saved space, duration).
-- [ ] Add command to open latest output folder.
+- [x] Add dependency diagnostics command (`media-converter`, `ffmpeg`, `ffprobe`, `magick`).
+- [x] Add conversion presets (Google Photos, High Quality, Max Compression).
+- [x] Add progress/log output view in Raycast.
+- [x] Add safer input validation (existing paths, write permissions).
+- [x] Add post-run summary (files processed, saved space, duration).
+- [x] Add command to open latest output folder.
+- [ ] Add optional SD-card auto-detection helper command.
+- [ ] Add destination profile templates (Local-only in V1, cloud in V2).
 
 ## Roadmap
 

@@ -5,7 +5,8 @@
     "jsx": "react-jsx",
     "moduleResolution": "Bundler",
     "strict": true,
-    "types": ["node"]
+    "skipLibCheck": true,
+    "types": ["node", "react"]
   },
   "include": ["src"]
 }
