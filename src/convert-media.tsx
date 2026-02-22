@@ -20,7 +20,7 @@ import ConversionRunView, { ConversionFormValues, ConversionPreset, LastRunRecor
 const execFileAsync = promisify(execFile);
 const LAST_RUN_STORAGE_KEY = "camera-workflow:last-run";
 
-type DependencyState = { ok: boolean; missing: string[] };
+type DependencyState = { ok: boolean; missing: string[]; found: Record<string, string> };
 type DetectedVolume = { name: string; mountPath: string };
 type SubmitValues = Omit<ConversionFormValues, "source" | "destination"> & {
   sourceFolder?: string[];
@@ -54,19 +54,52 @@ function defaultValues(): ConversionFormValues {
   };
 }
 
-async function checkDependencies(): Promise<DependencyState> {
-  const bins = ["media-converter", "ffmpeg", "ffprobe", "magick"];
-  const missing: string[] = [];
+async function resolveBinaryPath(bin: string): Promise<string | null> {
+  // 1) Current process PATH
+  try {
+    const res = await execFileAsync("which", [bin]);
+    const candidate = res.stdout.trim();
+    if (candidate) return candidate;
+  } catch {
+    // continue
+  }
 
-  for (const bin of bins) {
+  // 2) Login shell PATH (Raycast can differ from interactive shell)
+  const shell = process.env.SHELL || "/bin/zsh";
+  try {
+    const res = await execFileAsync(shell, ["-lc", `command -v ${bin}`]);
+    const candidate = res.stdout.trim();
+    if (candidate) return candidate;
+  } catch {
+    // continue
+  }
+
+  // 3) Common macOS install paths fallback
+  for (const p of ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]) {
+    const candidate = path.join(p, bin);
     try {
-      await execFileAsync("which", [bin]);
+      await access(candidate, constants.X_OK);
+      return candidate;
     } catch {
-      missing.push(bin);
+      // continue
     }
   }
 
-  return { ok: missing.length === 0, missing };
+  return null;
+}
+
+async function checkDependencies(): Promise<DependencyState> {
+  const bins = ["media-converter", "ffmpeg", "ffprobe", "magick"];
+  const missing: string[] = [];
+  const found: Record<string, string> = {};
+
+  for (const bin of bins) {
+    const resolved = await resolveBinaryPath(bin);
+    if (!resolved) missing.push(bin);
+    else found[bin] = resolved;
+  }
+
+  return { ok: missing.length === 0, missing, found };
 }
 
 async function detectSourceVolumes(): Promise<DetectedVolume[]> {
@@ -152,7 +185,7 @@ export default function Command() {
   async function handleSubmit(input: SubmitValues) {
     try {
       if (deps.data && !deps.data.ok) {
-        throw new Error(`Missing required tools: ${deps.data.missing.join(", ")}`);
+        throw new Error(`Missing required tools: ${deps.data.missing.join(", ")}. Found: ${Object.keys(deps.data.found).join(", ") || "none"}.`);
       }
 
       const source = input.sourceFolder?.[0] || input.sourceSuggested?.trim() || "";
@@ -198,8 +231,8 @@ export default function Command() {
 
   const setupText = deps.data
     ? deps.data.ok
-      ? "✅ System setup OK (media-converter, ffmpeg, ffprobe, magick)"
-      : `❌ Missing tools: ${deps.data.missing.join(", ")}`
+      ? `✅ System setup OK (${Object.keys(deps.data.found).join(", ")})`
+      : `⚠️ Found: ${Object.keys(deps.data.found).join(", ") || "none"} | Missing: ${deps.data.missing.join(", ")}`
     : "Checking system setup...";
 
   return (
