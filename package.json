@@ -1,0 +1,32 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "gomediaminify",
+  "title": "GoMediaMinify",
+  "description": "Run GoMediaMinify conversions from Raycast",
+  "icon": "command-icon.png",
+  "author": "Azilone",
+  "categories": ["Productivity", "Developer Tools"],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "convert-media",
+      "title": "Convert Media",
+      "description": "Launch GoMediaMinify with selected options",
+      "mode": "view"
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.83.0",
+    "@raycast/utils": "^1.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  },
+  "scripts": {
+    "dev": "ray develop",
+    "build": "ray build",
+    "lint": "ray lint",
+    "fix-lint": "ray lint --fix"
+  }
+}
