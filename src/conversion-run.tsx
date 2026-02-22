@@ -72,9 +72,9 @@ function parseSummary(logLines: string[]): string[] {
 }
 
 function markdownForState(lines: string[], status: "running" | "success" | "failure", summary: string[]) {
-  const statusLabel = status === "running" ? "🟡 Running" : status === "success" ? "🟢 Completed" : "🔴 Failed";
+  const statusLabel = status === "running" ? "🟡 In Progress" : status === "success" ? "🟢 Completed" : "🔴 Failed";
 
-  return `# Camera Workflow Run\n\n**Status:** ${statusLabel}\n\n## Live Output\n\n\`\`\`\n${lines.slice(-240).join("\n")}\n\`\`\`\n\n## Summary\n${summary.length ? summary.map((line) => `- ${line}`).join("\n") : "- Waiting for summary..."}`;
+  return `# Backup Preparation Run\n\n**Status:** ${statusLabel}\n\n## Live Process Output\n\n\`\`\`\n${lines.slice(-240).join("\n")}\n\`\`\`\n\n## Backup Report\n${summary.length ? summary.map((line) => `- ${line}`).join("\n") : "- Waiting for report metrics..."}`;
 }
 
 export default function ConversionRunView({ values, onCompleted }: Props) {
@@ -137,8 +137,8 @@ export default function ConversionRunView({ values, onCompleted }: Props) {
 
       await showToast({
         style: success ? Toast.Style.Success : Toast.Style.Failure,
-        title: success ? "Conversion completed" : "Conversion failed",
-        message: success ? "Camera Workflow finished" : `Exit code ${code ?? "unknown"}`,
+        title: success ? "Backup preparation completed" : "Backup preparation failed",
+        message: success ? "Prepared library is ready" : `Exit code ${code ?? "unknown"}`,
       });
 
       if (onCompleted) {
@@ -168,7 +168,7 @@ export default function ConversionRunView({ values, onCompleted }: Props) {
         <ActionPanel>
           {logPath ? <Action title="Open Log File" icon={Icon.Document} onAction={() => open(logPath, LaunchType.UserInitiated)} /> : null}
           <Action
-            title="Open Output Folder"
+            title="Open Prepared Library"
             icon={Icon.Folder}
             onAction={() => open(values.destination, LaunchType.UserInitiated)}
           />

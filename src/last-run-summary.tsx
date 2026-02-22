@@ -19,7 +19,7 @@ export default function Command() {
   const { data: lastRun, isLoading } = usePromise(loadLastRun, []);
 
   if (!lastRun) {
-    return <Detail isLoading={isLoading} markdown="# No summary available\n\nRun **Convert Media** first." />;
+    return <Detail isLoading={isLoading} markdown="# No backup report available\n\nRun **Prepare Library for Backup** first." />;
   }
 
   const summary = lastRun.summary?.length ? lastRun.summary.map((line) => `- ${line}`).join("\n") : "- No summary captured";
@@ -27,7 +27,7 @@ export default function Command() {
   return (
     <Detail
       isLoading={isLoading}
-      markdown={`# Last Run Summary\n\n- Status: **${lastRun.status}**\n- Source: **${lastRun.source}**\n- Destination: **${lastRun.destination}**\n- Timestamp: **${lastRun.timestamp}**\n\n## Metrics\n${summary}`}
+      markdown={`# Last Backup Report\n\n- Status: **${lastRun.status}**\n- Source: **${lastRun.source}**\n- Prepared Library: **${lastRun.destination}**\n- Timestamp: **${lastRun.timestamp}**\n\n## Report Metrics\n${summary}`}
     />
   );
 }

@@ -59,7 +59,7 @@ export default function Command() {
     <List
       isLoading={isLoading}
       searchBarPlaceholder="Search dependency"
-      navigationTitle={missingRequired ? `Missing ${missingRequired} required dependencies` : "All required dependencies are available"}
+      navigationTitle={missingRequired ? `Setup incomplete: ${missingRequired} required tools missing` : "System setup is ready"}
     >
       {statuses.map((status) => {
         const icon = status.found ? { source: Icon.CheckCircle, tintColor: Color.Green } : { source: Icon.XMarkCircle, tintColor: Color.Red };

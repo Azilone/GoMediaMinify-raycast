@@ -2,7 +2,8 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "camera-workflow",
   "title": "Camera Workflow",
-  "description": "Raycast toolkit for photo/video workflows (ingest, convert, organize, archive)",
+  "description": "Prepare your camera library for cloud backup: shrink files, organize by date, keep originals safe",
+
   "icon": "command-icon.png",
   "author": "Azilone",
   "categories": [
@@ -13,26 +14,26 @@
   "commands": [
     {
       "name": "convert-media",
-      "title": "Convert Media (GoMediaMinify)",
-      "description": "Run a conversion workflow with configurable options",
+      "title": "Prepare Library for Backup",
+      "description": "Shrink and organize media for cloud backup with safe defaults",
       "mode": "view"
     },
     {
       "name": "check-deps",
-      "title": "Check Dependencies",
-      "description": "Verify media-converter, ffmpeg, ffprobe, and magick availability",
+      "title": "Check System Setup",
+      "description": "Verify required tools are installed before running backup preparation",
       "mode": "view"
     },
     {
       "name": "last-run-summary",
-      "title": "Last Run Summary",
-      "description": "Show latest conversion summary metrics",
+      "title": "View Last Backup Report",
+      "description": "See metrics from the latest backup preparation run",
       "mode": "view"
     },
     {
       "name": "open-latest-output",
-      "title": "Open Latest Output",
-      "description": "Open the destination folder and log from the latest run",
+      "title": "Open Prepared Library",
+      "description": "Open the latest prepared library folder and run log",
       "mode": "view"
     }
   ],

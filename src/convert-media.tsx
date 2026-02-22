@@ -79,8 +79,8 @@ export default function Command() {
 
       await showToast({
         style: Toast.Style.Animated,
-        title: "Starting conversion",
-        message: values.dryRun ? "Dry-run mode" : "Processing media files",
+        title: "Starting backup preparation",
+        message: values.dryRun ? "Dry-run preview" : "Preparing media library",
       });
 
       push(
@@ -104,13 +104,13 @@ export default function Command() {
     <Form
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Run Camera Workflow" onSubmit={handleSubmit} />
+          <Action.SubmitForm title="Prepare Library for Backup" onSubmit={handleSubmit} />
         </ActionPanel>
       }
     >
-      <Form.Description text="80/20 local workflow: pick source + destination, choose a preset, run safely." />
+      <Form.Description text="Prepare a cloud-ready library: pick source + destination, choose a preset, run safely." />
       <Form.TextField id="source" title="Source Folder" placeholder="/path/to/source" />
-      <Form.TextField id="destination" title="Destination Folder" placeholder="/path/to/output" />
+      <Form.TextField id="destination" title="Prepared Library Folder" placeholder="/path/to/prepared-library" />
 
       <Form.Dropdown id="preset" title="Preset" defaultValue={defaultValues().preset}>
         <Form.Dropdown.Item value="google-photos" title="Google Photos (Recommended)" />

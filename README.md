@@ -1,33 +1,59 @@
 # Camera Workflow (Raycast Extension)
 
-Camera Workflow is a Raycast extension that wraps [`GoMediaMinify`](https://github.com/Azilone/GoMediaMinify) and evolves into a complete toolkit for camera/media workflows.
+**Camera Workflow helps you prepare your camera library for cloud backup**: shrink file size, organize media by date, and keep originals safe.
 
-## Vision
+Built on top of [`GoMediaMinify`](https://github.com/Azilone/GoMediaMinify).
 
-Turn repetitive camera management tasks into fast, reliable, one-command workflows.
+## Product Positioning
+
+- **What it is:** a backup-preparation toolkit for personal photo/video libraries.
+- **What it is not:** a professional RAW archival/pixel-perfect workflow.
+- **Primary outcome:** a lighter, cleaner, cloud-ready media library (Google Photos first).
+
+## Core Promise
+
+> Prepare your camera library for cloud backup: shrink files, organize by date, keep originals safe.
+
+## Terminology (Copywriting Rules)
+
+Use these terms consistently across UI and docs:
+
+- **Prepare** (not "convert" in user-facing copy)
+- **Prepared Library** (not "output")
+- **Backup Report** (not "run summary")
+- **Space Reduction** (not "compression" in user-facing copy)
+- **Backup Preparation Run** (not generic "run")
 
 ## Rules
 
 - English only (UI, docs, command labels, commit messages when possible).
-- Keep workflows safe by default (`dry-run` first whenever relevant).
+- Safe defaults first (`dry-run` enabled by default).
 - Never overwrite originals unless explicitly requested.
-- Every major change should be documented in this README roadmap.
-- Prefer small, iterative releases over large rewrites.
+- Keep naming user-centric and outcome-oriented.
+- Every major UX/copy decision must be documented here.
 
 ## Core Principles
 
-- Idempotent by design: rerunning the same workflow should not duplicate or reprocess completed work.
+- Idempotent by design: rerunning should never duplicate or reprocess completed work.
 - Safe defaults first: preview before write operations whenever possible.
-- Traceability: each run should produce clear logs and summaries.
+- Traceability: each run should produce clear logs and report metrics.
 - Practical 80/20 delivery: prioritize high-impact workflows before advanced automation.
 
 ## Current Scope (V1)
 
 - 80/20 focus: ship a practical MVP first, then iterate.
-- Run GoMediaMinify conversion from a Raycast form.
+- Prepare media via GoMediaMinify from a Raycast form.
 - Source detection + manual source picker.
 - Local destination folder only (cloud targets later).
-- Configure core options (photo format, video codec, jobs, dry-run).
+- Configure core options (preset, codec/format, quality, jobs, dry-run).
+- Show live process output and a backup report.
+
+## Commands (User-Facing)
+
+- **Prepare Library for Backup**
+- **Check System Setup**
+- **View Last Backup Report**
+- **Open Prepared Library**
 
 ## TODO
 
@@ -43,29 +69,29 @@ Turn repetitive camera management tasks into fast, reliable, one-command workflo
 ## Roadmap
 
 ### Milestone 1 — Solid Foundation
-- Stabilize the conversion command UX.
-- Add dependency checks and actionable errors.
-- Add presets and persistent preferences.
+- Stabilize "Prepare Library for Backup" UX.
+- Add setup checks with actionable recovery guidance.
+- Keep presets simple and useful for non-technical users.
 
 ### Milestone 2 — Workflow Suite
-- SD Card Ingest workflow (copy + organize by date).
-- Backup workflow (local/NAS target profiles).
+- SD Card ingest workflow (copy + organize by date).
+- Backup workflow (local/NAS profile templates).
 - Duplicate detection workflow.
 
 ### Milestone 3 — Power Features
 - Batch profiles (save/load named workflow configs).
 - Multi-step workflow chaining.
-- Optional notifications and post-processing hooks.
+- Optional cloud export integrations.
 
 ## Development
 
 ```bash
-npm install
+npm install --include=dev
 npm run dev
 ```
 
 ## Requirements
 
-- Raycast
+- Raycast (macOS)
 - `media-converter` binary available in PATH
 - `ffmpeg`, `ffprobe`, and ImageMagick (`magick`)
