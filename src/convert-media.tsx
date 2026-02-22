@@ -9,12 +9,12 @@ import {
   useNavigation,
 } from "@raycast/api";
 import { usePromise } from "@raycast/utils";
-import { existsSync } from "node:fs";
 import { access, mkdir, readdir, stat } from "node:fs/promises";
 import { constants } from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
+import { useState } from "react";
 import ConversionRunView, { ConversionFormValues, ConversionPreset, LastRunRecord } from "./conversion-run";
 
 const execFileAsync = promisify(execFile);
@@ -22,9 +22,10 @@ const LAST_RUN_STORAGE_KEY = "camera-workflow:last-run";
 
 type DependencyState = { ok: boolean; missing: string[] };
 type DetectedVolume = { name: string; mountPath: string };
-type SubmitValues = Omit<ConversionFormValues, "source"> & {
-  sourceDetected: string;
-  sourceManual: string;
+type SubmitValues = Omit<ConversionFormValues, "source" | "destination"> & {
+  sourceFolder?: string[];
+  destinationFolder?: string[];
+  sourceSuggested?: string;
 };
 
 const COMMON_SYSTEM_VOLUME_NAMES = new Set([
@@ -77,15 +78,17 @@ async function detectSourceVolumes(): Promise<DetectedVolume[]> {
       const entries = await readdir(root);
       for (const entry of entries) {
         if (COMMON_SYSTEM_VOLUME_NAMES.has(entry)) continue;
+
         const mountPath = path.join(root, entry);
         try {
           const st = await stat(mountPath);
           if (!st.isDirectory()) continue;
+
           if (/(sd|card|camera|dcim|usb|eos|sony|nikon|canon|untitled)/i.test(entry.toLowerCase())) {
             found.push({ name: entry, mountPath });
           }
         } catch {
-          // ignore
+          // ignore unreadable entries
         }
       }
     } catch {
@@ -108,7 +111,9 @@ async function validateInputs(values: ConversionFormValues) {
     throw new Error("Source must be an existing directory.");
   }
 
-  if (!existsSync(values.destination)) {
+  try {
+    await stat(values.destination);
+  } catch {
     await mkdir(values.destination, { recursive: true });
   }
 
@@ -142,17 +147,20 @@ export default function Command() {
   const { push } = useNavigation();
   const deps = usePromise(checkDependencies, []);
   const volumes = usePromise(detectSourceVolumes, []);
+  const [presetView, setPresetView] = useState<ConversionPreset>(defaultValues().preset as ConversionPreset);
 
   async function handleSubmit(input: SubmitValues) {
     try {
       if (deps.data && !deps.data.ok) {
-        throw new Error(`Missing required tools: ${deps.data.missing.join(", ")}. Run setup first.`);
+        throw new Error(`Missing required tools: ${deps.data.missing.join(", ")}`);
       }
 
-      const source = input.sourceManual?.trim() || input.sourceDetected?.trim();
+      const source = input.sourceFolder?.[0] || input.sourceSuggested?.trim() || "";
+      const destination = input.destinationFolder?.[0] || "";
+
       const values = applyPreset({
         source,
-        destination: input.destination,
+        destination,
         preset: input.preset,
         dryRun: input.dryRun,
         jobs: input.jobs,
@@ -162,6 +170,7 @@ export default function Command() {
         videoCodec: input.videoCodec,
         videoCrf: input.videoCrf,
       });
+
       await validateInputs(values);
 
       await showToast({
@@ -181,7 +190,7 @@ export default function Command() {
     } catch (error) {
       await showToast({
         style: Toast.Style.Failure,
-        title: "Validation failed",
+        title: "Cannot start",
         message: error instanceof Error ? error.message : String(error),
       });
     }
@@ -189,8 +198,8 @@ export default function Command() {
 
   const setupText = deps.data
     ? deps.data.ok
-      ? "System setup: ready"
-      : `System setup: missing ${deps.data.missing.join(", ")}`
+      ? "✅ System setup OK (media-converter, ffmpeg, ffprobe, magick)"
+      : `❌ Missing tools: ${deps.data.missing.join(", ")}`
     : "Checking system setup...";
 
   return (
@@ -204,38 +213,66 @@ export default function Command() {
     >
       <Form.Description text={`Guided single-command workflow. ${setupText}`} />
 
-      <Form.Dropdown id="sourceDetected" title="Detected Source Volume" info="Pick a detected source volume, or leave empty and use manual path.">
-        <Form.Dropdown.Item value="" title="(none) use manual source path" />
-        {volumes.data?.map((volume) => (
-          <Form.Dropdown.Item key={volume.mountPath} value={volume.mountPath} title={`${volume.name} (${volume.mountPath})`} />
-        ))}
-      </Form.Dropdown>
+      <Form.FilePicker
+        id="sourceFolder"
+        title="Source Folder"
+        canChooseDirectories
+        canChooseFiles={false}
+        allowMultipleSelection={false}
+        info="Pick your SD card or media source folder."
+      />
 
-      <Form.TextField id="sourceManual" title="Source Folder (Manual)" placeholder="/path/to/source" />
-      <Form.TextField id="destination" title="Prepared Library Folder" placeholder="/path/to/prepared-library" />
+      {volumes.data?.length ? (
+        <Form.Dropdown id="sourceSuggested" title="Suggested Source (optional fallback)">
+          <Form.Dropdown.Item value="" title="(none)" />
+          {volumes.data.map((volume) => (
+            <Form.Dropdown.Item key={volume.mountPath} value={volume.mountPath} title={`${volume.name} (${volume.mountPath})`} />
+          ))}
+        </Form.Dropdown>
+      ) : null}
 
-      <Form.Dropdown id="preset" title="Preset" defaultValue={defaultValues().preset}>
+      <Form.FilePicker
+        id="destinationFolder"
+        title="Prepared Library Folder"
+        canChooseDirectories
+        canChooseFiles={false}
+        allowMultipleSelection={false}
+        info="Pick where the prepared library will be written."
+      />
+
+      <Form.Dropdown id="preset" title="Preset" defaultValue={defaultValues().preset} onChange={(value) => setPresetView(value as ConversionPreset)}>
         <Form.Dropdown.Item value="google-photos" title="Google Photos (Recommended)" />
         <Form.Dropdown.Item value="high-quality" title="High Quality" />
         <Form.Dropdown.Item value="max-compression" title="Max Compression" />
         <Form.Dropdown.Item value="custom" title="Custom" />
       </Form.Dropdown>
 
-      <Form.Separator />
       <Form.Checkbox id="dryRun" title="Dry Run" label="Preview changes only" defaultValue={defaultValues().dryRun} />
-      <Form.TextField id="jobs" title="Parallel Jobs" placeholder={defaultValues().jobs} defaultValue={defaultValues().jobs} />
-      <Form.Dropdown id="photoFormat" title="Photo Format" defaultValue={defaultValues().photoFormat}>
-        <Form.Dropdown.Item value="avif" title="AVIF" />
-        <Form.Dropdown.Item value="webp" title="WebP" />
-      </Form.Dropdown>
-      <Form.TextField id="photoQualityAvif" title="AVIF Quality" defaultValue={defaultValues().photoQualityAvif} />
-      <Form.TextField id="photoQualityWebp" title="WebP Quality" defaultValue={defaultValues().photoQualityWebp} />
-      <Form.Dropdown id="videoCodec" title="Video Codec" defaultValue={defaultValues().videoCodec}>
-        <Form.Dropdown.Item value="h265" title="H.265" />
-        <Form.Dropdown.Item value="h264" title="H.264" />
-        <Form.Dropdown.Item value="av1" title="AV1" />
-      </Form.Dropdown>
-      <Form.TextField id="videoCrf" title="Video CRF" defaultValue={defaultValues().videoCrf} />
+      <Form.TextField id="jobs" title="Parallel Jobs" defaultValue={defaultValues().jobs} />
+
+      {presetView === "custom" ? (
+        <>
+          <Form.Separator />
+          <Form.Description text="Custom preset enabled: advanced settings are editable." />
+          <Form.Dropdown id="photoFormat" title="Photo Format" defaultValue={defaultValues().photoFormat}>
+            <Form.Dropdown.Item value="avif" title="AVIF" />
+            <Form.Dropdown.Item value="webp" title="WebP" />
+          </Form.Dropdown>
+          <Form.TextField id="photoQualityAvif" title="AVIF Quality" defaultValue={defaultValues().photoQualityAvif} />
+          <Form.TextField id="photoQualityWebp" title="WebP Quality" defaultValue={defaultValues().photoQualityWebp} />
+          <Form.Dropdown id="videoCodec" title="Video Codec" defaultValue={defaultValues().videoCodec}>
+            <Form.Dropdown.Item value="h265" title="H.265" />
+            <Form.Dropdown.Item value="h264" title="H.264" />
+            <Form.Dropdown.Item value="av1" title="AV1" />
+          </Form.Dropdown>
+          <Form.TextField id="videoCrf" title="Video CRF" defaultValue={defaultValues().videoCrf} />
+        </>
+      ) : (
+        <>
+          <Form.Separator />
+          <Form.Description text="Advanced settings are auto-configured by the selected preset." />
+        </>
+      )}
     </Form>
   );
 }
